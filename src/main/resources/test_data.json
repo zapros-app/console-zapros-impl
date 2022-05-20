@@ -1,0 +1,100 @@
+{
+  "criteria": [
+    {
+      "name": "A",
+      "id": "0",
+      "assessment": [
+        {
+          "name": "A1",
+          "rank": "1"
+        },
+        {
+          "name": "A2",
+          "rank": "2"
+        },
+        {
+          "name": "A3",
+          "rank": "3"
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "id": "1",
+      "assessment": [
+        {
+          "name": "B1",
+          "rank": "1"
+        },
+        {
+          "name": "B2",
+          "rank": "2"
+        },
+        {
+          "name": "B3",
+          "rank": "3"
+        }
+      ]
+    },
+    {
+      "name": "C",
+      "id": "2",
+      "assessment": [
+        {
+          "name": "C1",
+          "rank": "1"
+        },
+        {
+          "name": "C2",
+          "rank": "2"
+        },
+        {
+          "name": "C3",
+          "rank": "3"
+        }
+      ]
+    }
+  ],
+  "alternative": [
+    {
+      "name": "S1(A3,B1,C2)",
+      "assessment": [
+        "A3",
+        "B1",
+        "C2"
+      ]
+    },
+    {
+      "name": "S2(A3,B2,C2)",
+      "assessment": [
+        "A3",
+        "B2",
+        "C2"
+      ]
+    },
+    {
+      "name": "S3(A1,B2,C3)",
+      "assessment": [
+        "A1",
+        "B2",
+        "C3"
+      ]
+    },
+    {
+      "name": "S4(A1,B1,C2)",
+      "assessment": [
+        "A1",
+        "B1",
+        "C2"
+      ]
+    },
+    {
+      "name": "S5(A2,B1,C2)",
+      "assessment": [
+        "A2",
+        "B1",
+        "C2"
+      ]
+    }
+  ]
+}
