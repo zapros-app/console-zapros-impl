@@ -1,22 +1,23 @@
 package org.example.zapros;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
-import com.zapros.QuasiExpertConfigFactory;
-import com.zapros.VdaZaprosFactory;
-import com.zapros.VdaZaprosWrapper;
-import com.zapros.bean.AlternativeResult;
-import com.zapros.bean.Answer;
-import com.zapros.bean.Answer.AnswerType;
-import com.zapros.bean.AnswerCheckResult;
-import com.zapros.bean.Assessment;
-import com.zapros.bean.BuildingQesCheckResult;
-import com.zapros.bean.Criteria;
-import com.zapros.bean.MethodType;
-import com.zapros.bean.QuasiExpert;
-import com.zapros.bean.QuasiExpertConfig;
+import org.polytech.zapros.QuasiExpertConfigFactory;
+import org.polytech.zapros.VdaZaprosFactory;
+import org.polytech.zapros.VdaZaprosWrapper;
+import org.polytech.zapros.bean.AlternativeResult;
+import org.polytech.zapros.bean.Answer;
+import org.polytech.zapros.bean.Answer.AnswerType;
+import org.polytech.zapros.bean.AnswerCheckResult;
+import org.polytech.zapros.bean.Assessment;
+import org.polytech.zapros.bean.BuildingQesCheckResult;
+import org.polytech.zapros.bean.Criteria;
+import org.polytech.zapros.bean.MethodType;
+import org.polytech.zapros.bean.QuasiExpert;
+import org.polytech.zapros.bean.QuasiExpertConfig;
 
 public class MainClass {
     public static Scanner in;
@@ -34,8 +35,8 @@ public class MainClass {
             QuasiExpertConfigFactory.getConfig(data.getCriteria(), 0.25)
         );
 
-        List<Answer> answerList = askAllQuestions(wrapper, data.getCriteria());
-//        List<Answer> answerList = getMyAnswers(data.getCriteria());
+//        List<Answer> answerList = askAllQuestions(wrapper, data.getCriteria());
+        List<Answer> answerList = getMyAnswers(data.getCriteria(), false);
         DisplayUtils.displayAnswers(answerList);
 
         List<QuasiExpert> qes = buildQes(wrapper, answerList);
@@ -43,6 +44,7 @@ public class MainClass {
 
         List<AlternativeResult> result = wrapper.getService().rankAlternatives(qes, data.getAlternatives(), wrapper.getConfig());
         DisplayUtils.displayAlternativesWithRanks(data, result);
+        DisplayUtils.displayAlternativeOrder(result);
 
         validateInput("Введите любую строку для завершения программы:");
         in.close();
@@ -128,85 +130,92 @@ public class MainClass {
         } while (true);
     }
 
-//    // TEST
-//    private static List<Answer> getMyAnswers(List<Criteria> criteriaList) {
-//        List<Answer> result = new ArrayList<>();
-//
-////        Ответы ЛПР:
-////        Answer{i=A2, j=B2, answerType=BETTER}
-////        Answer{i=A3, j=B2, answerType=WORSE}
-////        Answer{i=A3, j=B3, answerType=WORSE}
-////        Answer{i=A2, j=C2, answerType=WORSE}
-////        Answer{i=A2, j=C3, answerType=BETTER}
-////        Answer{i=A3, j=C3, answerType=BETTER}
-////        Answer{i=B2, j=C2, answerType=WORSE}
-////        Answer{i=B2, j=C3, answerType=BETTER}
-////        Answer{i=B3, j=C3, answerType=WORSE}
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(1),
-//            criteriaList.get(1).getAssessments().get(1),
-//            AnswerType.BETTER,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(2),
-//            criteriaList.get(1).getAssessments().get(1),
-//            AnswerType.WORSE,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(2),
-//            criteriaList.get(1).getAssessments().get(2),
-//            AnswerType.WORSE,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(1),
-//            criteriaList.get(2).getAssessments().get(1),
-//            AnswerType.WORSE,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(1),
-//            criteriaList.get(2).getAssessments().get(2),
-//            AnswerType.BETTER,
-//            true
-//        ));
+    // TEST
+    private static List<Answer> getMyAnswers(List<Criteria> criteriaList, boolean twoQe) {
+        List<Answer> result = new ArrayList<>();
+
+//        Ответы ЛПР:
+//        Answer{i=A2, j=B2, answerType=BETTER}
+//        Answer{i=A3, j=B2, answerType=WORSE}
+//        Answer{i=A3, j=B3, answerType=WORSE}
+//        Answer{i=A2, j=C2, answerType=WORSE}
+//        Answer{i=A2, j=C3, answerType=BETTER}
+//        Answer{i=A3, j=C3, twoQe ? answerType=BETTER : answerType=WORSE}
+//        Answer{i=B2, j=C2, answerType=WORSE}
+//        Answer{i=B2, j=C3, answerType=BETTER}
+//        Answer{i=B3, j=C3, answerType=WORSE}
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(1),
+            criteriaList.get(1).getAssessments().get(1),
+            AnswerType.BETTER,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(2),
+            criteriaList.get(1).getAssessments().get(1),
+            AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(2),
+            criteriaList.get(1).getAssessments().get(2),
+            AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
 //
 //        result.add(new Answer(
 //            criteriaList.get(0).getAssessments().get(2),
-//            criteriaList.get(2).getAssessments().get(2),
+//            criteriaList.get(1).getAssessments().get(3),
 //            AnswerType.BETTER,
-//            true
+//            Answer.AnswerAuthor.USER
 //        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(1).getAssessments().get(1),
-//            criteriaList.get(2).getAssessments().get(1),
-//            AnswerType.WORSE,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(1).getAssessments().get(1),
-//            criteriaList.get(2).getAssessments().get(2),
-//            AnswerType.BETTER,
-//            true
-//        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(1).getAssessments().get(2),
-//            criteriaList.get(2).getAssessments().get(2),
-//            AnswerType.WORSE,
-//            true
-//        ));
-//
-//        return result;
-//    }
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(1),
+            criteriaList.get(2).getAssessments().get(1),
+            AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(1),
+            criteriaList.get(2).getAssessments().get(2),
+            AnswerType.BETTER,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(0).getAssessments().get(2),
+            criteriaList.get(2).getAssessments().get(2),
+            twoQe ? AnswerType.BETTER : AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(1).getAssessments().get(1),
+            criteriaList.get(2).getAssessments().get(1),
+            AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(1).getAssessments().get(1),
+            criteriaList.get(2).getAssessments().get(2),
+            AnswerType.BETTER,
+            Answer.AnswerAuthor.USER
+        ));
+
+        result.add(new Answer(
+            criteriaList.get(1).getAssessments().get(2),
+            criteriaList.get(2).getAssessments().get(2),
+            AnswerType.WORSE,
+            Answer.AnswerAuthor.USER
+        ));
+
+        return result;
+    }
 
 }

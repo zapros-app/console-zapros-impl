@@ -1,16 +1,22 @@
 package org.example.zapros;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import com.zapros.bean.Alternative;
-import com.zapros.bean.AlternativeResult;
-import com.zapros.bean.Answer;
-import com.zapros.bean.Assessment;
-import com.zapros.bean.Criteria;
-import com.zapros.bean.QuasiExpert;
-import com.zapros.bean.QuasiExpertQV;
+import org.polytech.zapros.bean.Alternative;
+import org.polytech.zapros.bean.AlternativeResult;
+import org.polytech.zapros.bean.Answer;
+import org.polytech.zapros.bean.Assessment;
+import org.polytech.zapros.bean.Criteria;
+import org.polytech.zapros.bean.QuasiExpert;
+import org.polytech.zapros.bean.QuasiExpertQV;
 
 public class DisplayUtils {
+
+    private DisplayUtils() {
+        // No org.example.zapros.DisplayUtils instances for you!
+    }
+
     public static void displayData(Data data) {
         System.out.println("Данные успешно загружены!\n");
         displayCriteria(data);
@@ -140,6 +146,14 @@ public class DisplayUtils {
                 '}'
             );
         }
+        System.out.println();
+    }
+
+    public static void displayAlternativeOrder(List<AlternativeResult> alternativeResultList) {
+        String collect = alternativeResultList.stream()
+            .map(x -> x.getAlternative().getName())
+            .collect(Collectors.joining(" -> "));
+        System.out.println(collect);
         System.out.println();
     }
 }

@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
-import com.zapros.bean.Alternative;
-import com.zapros.bean.Assessment;
-import com.zapros.bean.Criteria;
+import org.polytech.zapros.bean.Alternative;
+import org.polytech.zapros.bean.Assessment;
+import org.polytech.zapros.bean.Criteria;
 
 /**
  * Данный класс служит для загрузки данных из файла.
