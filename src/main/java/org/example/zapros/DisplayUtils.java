@@ -3,6 +3,7 @@ package org.example.zapros;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.polytech.zapros.bean.Alternative;
@@ -16,7 +17,6 @@ import org.polytech.zapros.bean.alternative.AlternativeOrderResult;
 import org.polytech.zapros.bean.alternative.AlternativeQVResult;
 import org.polytech.zapros.bean.alternative.AlternativeRankingResult;
 import org.polytech.zapros.bean.alternative.AlternativeResult;
-import org.polytech.zapros.bean.alternative.CompareType;
 
 public class DisplayUtils {
 
@@ -162,9 +162,19 @@ public class DisplayUtils {
         System.out.println();
     }
 
-    public static void displayBaseInfo(AlternativeRankingResult result, MethodType methodType) {
+    public static void displayBotInfo(Project project) {
+        System.out.println("Кол-во критериев: " + project.getCriteriaList().size());
+        System.out.println("Кол-во оценок в критериях: " + project.getCriteriaList().get(0).getAssessments().size());
+        System.out.println("Кол-во альтернатив: " + project.getAlternatives().size());
+        System.out.println("Кол-во сравнений: " + (project.getAlternatives().size() * (project.getAlternatives().size() - 1) / 2));
+    }
+
+    public static void displayBaseInfo(AlternativeRankingResult result, long avgTime, MethodType methodType) {
         System.out.println(methodType);
-        System.out.println("Время: " + result.getNanoTime() + " нс");
+        System.out.println("Среднее время (нс): " + avgTime + " нс");
+        System.out.println("Среднее время (мкс): " + TimeUnit.MICROSECONDS.convert(avgTime, TimeUnit.NANOSECONDS) + " мкс");
+        System.out.println("Среднее время (мс): " + TimeUnit.MILLISECONDS.convert(avgTime, TimeUnit.NANOSECONDS) + " мс");
+        System.out.println("Среднее время (с): " + TimeUnit.SECONDS.convert(avgTime, TimeUnit.NANOSECONDS) + " с");
 
         List<Integer> equalCount = new ArrayList<>();
         List<Integer> notComparableCount = new ArrayList<>();

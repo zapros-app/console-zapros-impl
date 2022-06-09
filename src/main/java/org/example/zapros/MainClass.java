@@ -27,7 +27,7 @@ public class MainClass {
     private final static String path2 = "src/main/resources/package-abc-with-3-assessments.json";
 
     public static void main(String[] args) {
-        in = new Scanner(System.in);
+//        in = new Scanner(System.in);
         Project project = null;
         try {
             project = Project.of(path1, path2);
@@ -51,19 +51,33 @@ public class MainClass {
 //        List<QuasiExpert> qes = buildQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
 //        DisplayUtils.displaySuccessInfo(qes, project.getCriteriaList());
 
+        DisplayUtils.displayBotInfo(project);
+
         List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
         List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
 
-        AlternativeRankingResult resultOrder = serviceOrder.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
-        AlternativeRankingResult resultQV = serviceQV.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+        int runNumber = 5;
+        long time1 = 0;
+        long time2 = 0;
+        AlternativeRankingResult resultOrder = null;
+        AlternativeRankingResult resultQV = null;
+        for (int i = 0; i < runNumber; i++) {
+            resultOrder = serviceOrder.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+            resultQV = serviceQV.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+            time1 += resultOrder.getNanoTime();
+            time2 += resultQV.getNanoTime();
+        }
 
-        DisplayUtils.displayBaseInfo(resultOrder, methodTypeOrder);
-        DisplayUtils.displayBaseInfo(resultQV, methodTypeQV);
+        long avgTime1 = time1 / runNumber;
+        long avgTime2 = time2 / runNumber;
+
+        DisplayUtils.displayBaseInfo(resultOrder, avgTime1, methodTypeOrder);
+        DisplayUtils.displayBaseInfo(resultQV, avgTime2, methodTypeQV);
 //        DisplayUtils.displayAlternativesWithRanks(project, result.getAlternativeResults());
 //        DisplayUtils.displayAlternativeOrder(result.getAlternativeResults());
 
-        validateInput("Введите любую строку для завершения программы:");
-        in.close();
+//        validateInput("Введите любую строку для завершения программы:");
+//        in.close();
     }
 
     private static List<QuasiExpert> buildQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, Double threshold) {
@@ -162,14 +176,18 @@ public class MainClass {
     private static List<QuasiExpert> generateQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
         BuildingQesCheckResult checkResult = service.buildQes(answerList, config, criteriaList, threshold);
 
+        int count = 0;
         while (!checkResult.isOver()) {
             AnswerType oldAnswerType = checkResult.getAnswerForReplacing().getAnswerType();
             AnswerType type = oldAnswerType == AnswerType.BETTER ? AnswerType.WORSE : AnswerType.BETTER;
+            count++;
 
             ReplacedAnswer replacedAnswer = service.replaceAnswer(checkResult, type);
             checkResult = service.buildQes(replacedAnswer.getNewAnswers(), config, criteriaList, threshold);
         }
 
+        System.out.println("Кол-во исправлений: " + count);
+        System.out.println();
         return checkResult.getQes();
     }
 }
