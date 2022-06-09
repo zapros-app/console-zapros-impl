@@ -1,14 +1,13 @@
 package org.example.zapros;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
-import org.polytech.zapros.QuasiExpertConfigFactory;
 import org.polytech.zapros.VdaZaprosFactory;
-import org.polytech.zapros.VdaZaprosWrapper;
-import org.polytech.zapros.bean.AlternativeResult;
 import org.polytech.zapros.bean.Answer;
 import org.polytech.zapros.bean.Answer.AnswerType;
 import org.polytech.zapros.bean.AnswerCheckResult;
@@ -18,62 +17,78 @@ import org.polytech.zapros.bean.Criteria;
 import org.polytech.zapros.bean.MethodType;
 import org.polytech.zapros.bean.QuasiExpert;
 import org.polytech.zapros.bean.QuasiExpertConfig;
+import org.polytech.zapros.bean.ReplacedAnswer;
+import org.polytech.zapros.bean.alternative.AlternativeRankingResult;
+import org.polytech.zapros.service.main.VdaZaprosService;
 
 public class MainClass {
     public static Scanner in;
-    private final static String path = "src/main/resources/data_nir.txt";
+    private final static String path1 = "src/main/resources/project-abc-with-3-assessments.json";
+    private final static String path2 = "src/main/resources/package-abc-with-3-assessments.json";
 
     public static void main(String[] args) {
         in = new Scanner(System.in);
-        Data data = Data.loadData(path);
-//        DisplayUtils.displayData(data);
+        Project project = null;
+        try {
+            project = Project.of(path1, path2);
+        } catch (IOException e) {
+            System.out.println("Error! " + e.getMessage());
+            System.exit(-1);
+        }
+//        DisplayUtils.displayProject(project);
 
-        validateInput("Как будете готовы отвечать на вопросы, введите в консоль 1:", "1");
+//        validateInput("Как будете готовы отвечать на вопросы, введите в консоль 1:", "1");
 
-        VdaZaprosWrapper wrapper = new VdaZaprosWrapper(
-            VdaZaprosFactory.getService(MethodType.ARACE_QV),
-            QuasiExpertConfigFactory.getConfig(data.getCriteria(), 0.25)
-        );
+        MethodType methodTypeOrder = MethodType.ZAPROS_II;
+        MethodType methodTypeQV = MethodType.ZAPROS_III;
 
-//        List<Answer> answerList = askAllQuestions(wrapper, data.getCriteria());
-        List<Answer> answerList = getMyAnswers(data.getCriteria(), false);
-        DisplayUtils.displayAnswers(answerList);
+        VdaZaprosService serviceOrder = VdaZaprosFactory.getService(methodTypeOrder);
+        VdaZaprosService serviceQV = VdaZaprosFactory.getService(methodTypeQV);
+        QuasiExpertConfig config = VdaZaprosFactory.getConfig(project.getCriteriaList());
 
-        List<QuasiExpert> qes = buildQes(wrapper, answerList);
-        DisplayUtils.displaySuccessInfo(qes, data.getCriteria());
+//        List<Answer> answerList = askAllQuestions(serviceOrder, project.getCriteriaList());
+//        DisplayUtils.displayAnswers(answerList);
+//        List<QuasiExpert> qes = buildQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
+//        DisplayUtils.displaySuccessInfo(qes, project.getCriteriaList());
 
-        List<AlternativeResult> result = wrapper.getService().rankAlternatives(qes, data.getAlternatives(), wrapper.getConfig());
-        DisplayUtils.displayAlternativesWithRanks(data, result);
-        DisplayUtils.displayAlternativeOrder(result);
+        List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
+        List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
+
+        AlternativeRankingResult resultOrder = serviceOrder.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+        AlternativeRankingResult resultQV = serviceQV.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+
+        DisplayUtils.displayBaseInfo(resultOrder, methodTypeOrder);
+        DisplayUtils.displayBaseInfo(resultQV, methodTypeQV);
+//        DisplayUtils.displayAlternativesWithRanks(project, result.getAlternativeResults());
+//        DisplayUtils.displayAlternativeOrder(result.getAlternativeResults());
 
         validateInput("Введите любую строку для завершения программы:");
         in.close();
     }
 
-    private static List<QuasiExpert> buildQes(VdaZaprosWrapper wrapper, List<Answer> answerList) {
-        BuildingQesCheckResult checkResult = wrapper.getService().buildQes(answerList, wrapper.getConfig());
+    private static List<QuasiExpert> buildQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, Double threshold) {
+        BuildingQesCheckResult checkResult = service.buildQes(answerList, config, criteriaList, threshold);
 
         while (!checkResult.isOver()) {
             String result = validateInput(getTextForAskAgain(checkResult), "1", "2", "3");
             AnswerType type = parseAnswer(result);
 
-            List<Answer> newAnswerList = wrapper.getService().replaceAnswer(checkResult, type);
-            DisplayUtils.displayAnswers(newAnswerList);
-            checkResult = wrapper.getService().buildQes(newAnswerList, wrapper.getConfig());
+            ReplacedAnswer replacedAnswer = service.replaceAnswer(checkResult, type);
+            DisplayUtils.displayAnswers(replacedAnswer.getNewAnswers());
+            checkResult = service.buildQes(replacedAnswer.getNewAnswers(), config, criteriaList, threshold);
         }
 
         return checkResult.getQes();
     }
 
-    private static List<Answer> askAllQuestions(VdaZaprosWrapper wrapper, List<Criteria> criteriaList) {
-        AnswerCheckResult checkResult = wrapper.getService().askFirst(criteriaList);
-        QuasiExpertConfig config = wrapper.getConfig();
+    private static List<Answer> askAllQuestions(VdaZaprosService service, List<Criteria> criteriaList) {
+        AnswerCheckResult checkResult = service.askFirst(criteriaList);
 
         while (!checkResult.isOver()) {
             String result = validateInput(getTextForAsk(checkResult), "1", "2", "3");
             AnswerType type = parseAnswer(result);
 
-            checkResult = wrapper.getService().addAnswer(checkResult, type, config);
+            checkResult = service.addAnswer(checkResult, type);
         }
 
         return checkResult.getAnswerList();
@@ -89,11 +104,11 @@ public class MainClass {
     }
 
     private static String getTextForAsk(AnswerCheckResult checkResult) {
-        Criteria criteriaI = checkResult.getCriteriaList().get(checkResult.getpCriteriaI());
-        Criteria criteriaJ = checkResult.getCriteriaList().get(checkResult.getpCriteriaJ());
+        Criteria criteriaI = checkResult.getCriteriaList().get(checkResult.getPCriteriaI());
+        Criteria criteriaJ = checkResult.getCriteriaList().get(checkResult.getPCriteriaJ());
 
-        Assessment assessmentI = criteriaI.getAssessments().get(checkResult.getpAssessmentI());
-        Assessment assessmentJ = criteriaJ.getAssessments().get(checkResult.getpAssessmentJ());
+        Assessment assessmentI = criteriaI.getAssessments().get(checkResult.getPAssessmentI());
+        Assessment assessmentJ = criteriaJ.getAssessments().get(checkResult.getPAssessmentJ());
 
         Assessment bestAssessmentI = criteriaI.getAssessments().get(0);
         Assessment bestAssessmentJ = criteriaJ.getAssessments().get(0);
@@ -130,92 +145,31 @@ public class MainClass {
         } while (true);
     }
 
-    // TEST
-    private static List<Answer> getMyAnswers(List<Criteria> criteriaList, boolean twoQe) {
-        List<Answer> result = new ArrayList<>();
+    private static List<Answer> generateAnswers(VdaZaprosService service, List<Criteria> criteriaList) {
+        AnswerCheckResult checkResult = service.askFirst(criteriaList);
 
-//        Ответы ЛПР:
-//        Answer{i=A2, j=B2, answerType=BETTER}
-//        Answer{i=A3, j=B2, answerType=WORSE}
-//        Answer{i=A3, j=B3, answerType=WORSE}
-//        Answer{i=A2, j=C2, answerType=WORSE}
-//        Answer{i=A2, j=C3, answerType=BETTER}
-//        Answer{i=A3, j=C3, twoQe ? answerType=BETTER : answerType=WORSE}
-//        Answer{i=B2, j=C2, answerType=WORSE}
-//        Answer{i=B2, j=C3, answerType=BETTER}
-//        Answer{i=B3, j=C3, answerType=WORSE}
+        Random random = new Random();
+        while (!checkResult.isOver()) {
+            int temp = random.nextInt(3);
+            AnswerType type = parseAnswer(String.valueOf(temp + 1));
 
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(1),
-            criteriaList.get(1).getAssessments().get(1),
-            AnswerType.BETTER,
-            Answer.AnswerAuthor.USER
-        ));
+            checkResult = service.addAnswer(checkResult, type);
+        }
 
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(2),
-            criteriaList.get(1).getAssessments().get(1),
-            AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(2),
-            criteriaList.get(1).getAssessments().get(2),
-            AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-//
-//        result.add(new Answer(
-//            criteriaList.get(0).getAssessments().get(2),
-//            criteriaList.get(1).getAssessments().get(3),
-//            AnswerType.BETTER,
-//            Answer.AnswerAuthor.USER
-//        ));
-
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(1),
-            criteriaList.get(2).getAssessments().get(1),
-            AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(1),
-            criteriaList.get(2).getAssessments().get(2),
-            AnswerType.BETTER,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(0).getAssessments().get(2),
-            criteriaList.get(2).getAssessments().get(2),
-            twoQe ? AnswerType.BETTER : AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(1).getAssessments().get(1),
-            criteriaList.get(2).getAssessments().get(1),
-            AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(1).getAssessments().get(1),
-            criteriaList.get(2).getAssessments().get(2),
-            AnswerType.BETTER,
-            Answer.AnswerAuthor.USER
-        ));
-
-        result.add(new Answer(
-            criteriaList.get(1).getAssessments().get(2),
-            criteriaList.get(2).getAssessments().get(2),
-            AnswerType.WORSE,
-            Answer.AnswerAuthor.USER
-        ));
-
-        return result;
+        return checkResult.getAnswerList();
     }
 
+    private static List<QuasiExpert> generateQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
+        BuildingQesCheckResult checkResult = service.buildQes(answerList, config, criteriaList, threshold);
+
+        while (!checkResult.isOver()) {
+            AnswerType oldAnswerType = checkResult.getAnswerForReplacing().getAnswerType();
+            AnswerType type = oldAnswerType == AnswerType.BETTER ? AnswerType.WORSE : AnswerType.BETTER;
+
+            ReplacedAnswer replacedAnswer = service.replaceAnswer(checkResult, type);
+            checkResult = service.buildQes(replacedAnswer.getNewAnswers(), config, criteriaList, threshold);
+        }
+
+        return checkResult.getQes();
+    }
 }
