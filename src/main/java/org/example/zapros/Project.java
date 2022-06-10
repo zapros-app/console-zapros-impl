@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +37,9 @@ public class Project {
         List<Criteria> criteriaList = project.criteriaList;
 
         Project project1 = gson.fromJson(jsonAlternatives, Project.class);
-        List<Alternative> alternatives = project1.alternatives;
+        List<Alternative> alternativesFULL = project1.alternatives;
+        Collections.shuffle(alternativesFULL);
+        List<Alternative> alternatives = alternativesFULL.stream().limit(2000).collect(Collectors.toList());
 
         long criteriaId = 0;
         int orderAssessmentId = 0;

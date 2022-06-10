@@ -1,9 +1,11 @@
 package org.example.zapros;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -19,12 +21,17 @@ import org.polytech.zapros.bean.QuasiExpert;
 import org.polytech.zapros.bean.QuasiExpertConfig;
 import org.polytech.zapros.bean.ReplacedAnswer;
 import org.polytech.zapros.bean.alternative.AlternativeRankingResult;
+import org.polytech.zapros.service.buildqe.BuildQesService;
+import org.polytech.zapros.service.buildqe.BuildQesServiceImpl;
 import org.polytech.zapros.service.main.VdaZaprosService;
+import org.polytech.zapros.service.qe.QuasiExpertService;
+import org.polytech.zapros.service.qe.QuasiExpertServiceImpl;
+import org.polytech.zapros.service.qe.QuasiExpertZaprosService;
 
 public class MainClass {
     public static Scanner in;
-    private final static String path1 = "src/main/resources/project-abc-with-3-assessments.json";
-    private final static String path2 = "src/main/resources/package-abc-with-3-assessments.json";
+    private final static String path1 = "src/main/resources/test-10-3/project-10c3a.json";
+    private final static String path2 = "src/main/resources/test-10-3/package-10c3a.json";
 
     public static void main(String[] args) {
 //        in = new Scanner(System.in);
@@ -54,7 +61,7 @@ public class MainClass {
         DisplayUtils.displayBotInfo(project);
 
         List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
-        List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
+        List<QuasiExpert> qes = generateQes(config, project.getCriteriaList(), answerList, 0.25);
 
         int runNumber = 5;
         long time1 = 0;
@@ -170,24 +177,37 @@ public class MainClass {
             checkResult = service.addAnswer(checkResult, type);
         }
 
+        System.out.println("Кол-во вопросов к ЛПР (боту): " + checkResult.getAnswerList().size());
         return checkResult.getAnswerList();
     }
 
-    private static List<QuasiExpert> generateQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
-        BuildingQesCheckResult checkResult = service.buildQes(answerList, config, criteriaList, threshold);
+    private static List<QuasiExpert> generateQes(QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
+        BuildQesService buildQesService = new BuildQesServiceImpl();
+        List<QuasiExpert> build = buildQesService.build(answerList, criteriaList, config);
+        System.out.println("Кол-во квазиэкспертов изначальное: " + build.size());
 
-        int count = 0;
-        while (!checkResult.isOver()) {
-            AnswerType oldAnswerType = checkResult.getAnswerForReplacing().getAnswerType();
-            AnswerType type = oldAnswerType == AnswerType.BETTER ? AnswerType.WORSE : AnswerType.BETTER;
-            count++;
+        QuasiExpert quasiExpert = build.get(0);
+        calculateRang(quasiExpert, criteriaList, config);
+        return Collections.singletonList(quasiExpert);
+    }
 
-            ReplacedAnswer replacedAnswer = service.replaceAnswer(checkResult, type);
-            checkResult = service.buildQes(replacedAnswer.getNewAnswers(), config, criteriaList, threshold);
+    private static void calculateRang(QuasiExpert quasiExpert, List<Criteria> criteriaList, QuasiExpertConfig config) {
+        int cur = 0;
+        Map<Assessment, Integer> ranks = new HashMap<>();
+
+        for (Criteria criteria: criteriaList) {
+            for (Assessment assessment: criteria.getAssessments()) {
+                int rank = 1;
+                for (int i = 0; i < config.getLen(); i++) {
+                    if (quasiExpert.getMatrix()[cur][i] != 1) {
+                        rank++;
+                    }
+                }
+                cur++;
+
+                ranks.put(assessment, rank);
+            }
         }
-
-        System.out.println("Кол-во исправлений: " + count);
-        System.out.println();
-        return checkResult.getQes();
+        quasiExpert.setRanks(ranks);
     }
 }

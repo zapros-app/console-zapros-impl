@@ -170,6 +170,7 @@ public class DisplayUtils {
     }
 
     public static void displayBaseInfo(AlternativeRankingResult result, long avgTime, MethodType methodType) {
+        System.out.println();
         System.out.println(methodType);
         System.out.println("Среднее время (нс): " + avgTime + " нс");
         System.out.println("Среднее время (мкс): " + TimeUnit.MICROSECONDS.convert(avgTime, TimeUnit.NANOSECONDS) + " мкс");
@@ -204,6 +205,5 @@ public class DisplayUtils {
         }
         System.out.println("Кол-во квазиэкспертов: " + qeCount);
         System.out.println("Кол-во рангов: " + result.getAlternativeResults().stream().max(Comparator.comparing(AlternativeResult::getFinalRank)).get().getFinalRank());
-        System.out.println();
     }
 }
