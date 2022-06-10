@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import org.polytech.zapros.VdaZaprosFactory;
 import org.polytech.zapros.bean.Answer;
@@ -30,8 +31,8 @@ import org.polytech.zapros.service.qe.QuasiExpertZaprosService;
 
 public class MainClass {
     public static Scanner in;
-    private final static String path1 = "src/main/resources/test-10-3/project-10c3a.json";
-    private final static String path2 = "src/main/resources/test-10-3/package-10c3a.json";
+    private final static String path1 = "src/main/resources/test-threshold/project-5c3a.json";
+    private final static String path2 = "src/main/resources/test-threshold/package-5c3a.json";
 
     public static void main(String[] args) {
 //        in = new Scanner(System.in);
@@ -46,8 +47,9 @@ public class MainClass {
 
 //        validateInput("Как будете готовы отвечать на вопросы, введите в консоль 1:", "1");
 
-        MethodType methodTypeOrder = MethodType.ZAPROS_II;
-        MethodType methodTypeQV = MethodType.ZAPROS_III;
+        MethodType methodTypeOrder = MethodType.ARACE;
+        MethodType methodTypeQV = MethodType.ARACE_QV;
+        Double threshold = 0.375;
 
         VdaZaprosService serviceOrder = VdaZaprosFactory.getService(methodTypeOrder);
         VdaZaprosService serviceQV = VdaZaprosFactory.getService(methodTypeQV);
@@ -61,7 +63,7 @@ public class MainClass {
         DisplayUtils.displayBotInfo(project);
 
         List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
-        List<QuasiExpert> qes = generateQes(config, project.getCriteriaList(), answerList, 0.25);
+        List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, threshold);
 
         int runNumber = 5;
         long time1 = 0;
@@ -171,7 +173,7 @@ public class MainClass {
 
         Random random = new Random();
         while (!checkResult.isOver()) {
-            int temp = random.nextInt(3);
+            int temp = random.nextInt(2);
             AnswerType type = parseAnswer(String.valueOf(temp + 1));
 
             checkResult = service.addAnswer(checkResult, type);
@@ -181,7 +183,7 @@ public class MainClass {
         return checkResult.getAnswerList();
     }
 
-    private static List<QuasiExpert> generateQes(QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
+    private static List<QuasiExpert> generateOneQes(QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
         BuildQesService buildQesService = new BuildQesServiceImpl();
         List<QuasiExpert> build = buildQesService.build(answerList, criteriaList, config);
         System.out.println("Кол-во квазиэкспертов изначальное: " + build.size());
@@ -189,6 +191,32 @@ public class MainClass {
         QuasiExpert quasiExpert = build.get(0);
         calculateRang(quasiExpert, criteriaList, config);
         return Collections.singletonList(quasiExpert);
+    }
+
+    private static List<QuasiExpert> generateQes(VdaZaprosService service, QuasiExpertConfig config, List<Criteria> criteriaList, List<Answer> answerList, double threshold) {
+        long time = System.nanoTime();
+        BuildingQesCheckResult checkResult = service.buildQes(answerList, config, criteriaList, threshold);
+
+        int count = 0;
+        while (!checkResult.isOver()) {
+            AnswerType type = checkResult.getAnswerForReplacing().getAnswerType() == AnswerType.BETTER ? AnswerType.WORSE : AnswerType.BETTER;
+            count++;
+
+            ReplacedAnswer replacedAnswer = service.replaceAnswer(checkResult, type);
+//            DisplayUtils.displayAnswers(replacedAnswer.getNewAnswers());
+            checkResult = service.buildQes(replacedAnswer.getNewAnswers(), config, criteriaList, threshold);
+        }
+        long time12 = System.nanoTime();
+        long timeTwo = time12 - time;
+
+        System.out.println();
+        System.out.println("Порог: " + threshold);
+        System.out.println("Кол-во исправлений: " + count);
+        System.out.println("Время, необходимое для построения всех квазиэкспертов (нс): " + timeTwo + " нс");
+        System.out.println("Время, необходимое для построения всех квазиэкспертов (мкс): " + TimeUnit.MICROSECONDS.convert(timeTwo, TimeUnit.NANOSECONDS) + " мкс");
+        System.out.println("Время, необходимое для построения всех квазиэкспертов (мс): " + TimeUnit.MILLISECONDS.convert(timeTwo, TimeUnit.NANOSECONDS) + " мс");
+        System.out.println("Время, необходимое для построения всех квазиэкспертов (с): " + TimeUnit.SECONDS.convert(timeTwo, TimeUnit.NANOSECONDS) + " с");
+        return checkResult.getQes();
     }
 
     private static void calculateRang(QuasiExpert quasiExpert, List<Criteria> criteriaList, QuasiExpertConfig config) {
