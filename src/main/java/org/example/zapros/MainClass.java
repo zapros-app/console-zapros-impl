@@ -25,17 +25,14 @@ import org.polytech.zapros.bean.alternative.AlternativeRankingResult;
 import org.polytech.zapros.service.buildqe.BuildQesService;
 import org.polytech.zapros.service.buildqe.BuildQesServiceImpl;
 import org.polytech.zapros.service.main.VdaZaprosService;
-import org.polytech.zapros.service.qe.QuasiExpertService;
-import org.polytech.zapros.service.qe.QuasiExpertServiceImpl;
-import org.polytech.zapros.service.qe.QuasiExpertZaprosService;
 
 public class MainClass {
     public static Scanner in;
-    private final static String path1 = "src/main/resources/test-threshold/project-5c3a.json";
-    private final static String path2 = "src/main/resources/test-threshold/package-5c3a.json";
+    private final static String path1 = "src/main/resources/test-threshold/project-6c3a.json";
+    private final static String path2 = "src/main/resources/test-threshold/package-6c3a.json";
 
     public static void main(String[] args) {
-//        in = new Scanner(System.in);
+        in = new Scanner(System.in);
         Project project = null;
         try {
             project = Project.of(path1, path2);
@@ -55,33 +52,56 @@ public class MainClass {
         VdaZaprosService serviceQV = VdaZaprosFactory.getService(methodTypeQV);
         QuasiExpertConfig config = VdaZaprosFactory.getConfig(project.getCriteriaList());
 
-//        List<Answer> answerList = askAllQuestions(serviceOrder, project.getCriteriaList());
+        List<Answer> answerList = askAllQuestions(serviceOrder, project.getCriteriaList());
 //        DisplayUtils.displayAnswers(answerList);
 //        List<QuasiExpert> qes = buildQes(serviceOrder, config, project.getCriteriaList(), answerList, 0.25);
 //        DisplayUtils.displaySuccessInfo(qes, project.getCriteriaList());
 
         DisplayUtils.displayBotInfo(project);
 
-        List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
-        List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, threshold);
+//        List<Answer> answerList = generateAnswers(serviceOrder, project.getCriteriaList());
+        List<QuasiExpert> qes = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, 0);
+        List<QuasiExpert> qesArace = generateQes(serviceOrder, config, project.getCriteriaList(), answerList, threshold);
 
-        int runNumber = 5;
-        long time1 = 0;
-        long time2 = 0;
-        AlternativeRankingResult resultOrder = null;
-        AlternativeRankingResult resultQV = null;
-        for (int i = 0; i < runNumber; i++) {
-            resultOrder = serviceOrder.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
-            resultQV = serviceQV.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
-            time1 += resultOrder.getNanoTime();
-            time2 += resultQV.getNanoTime();
+        {
+            int runNumber = 5;
+            long time1 = 0;
+            long time2 = 0;
+            AlternativeRankingResult resultOrder = null;
+            AlternativeRankingResult resultQV = null;
+            for (int i = 0; i < runNumber; i++) {
+                resultOrder = serviceOrder.rankAlternatives(qesArace, project.getAlternatives(), project.getCriteriaList(), config);
+                resultQV = serviceQV.rankAlternatives(qesArace, project.getAlternatives(), project.getCriteriaList(), config);
+                time1 += resultOrder.getNanoTime();
+                time2 += resultQV.getNanoTime();
+            }
+
+            long avgTime1 = time1 / runNumber;
+            long avgTime2 = time2 / runNumber;
+
+            DisplayUtils.displayBaseInfo(resultOrder, avgTime1, MethodType.ARACE);
+            DisplayUtils.displayBaseInfo(resultQV, avgTime2, MethodType.ARACE_QV);
         }
 
-        long avgTime1 = time1 / runNumber;
-        long avgTime2 = time2 / runNumber;
+        {
+            int runNumber = 5;
+            long time1 = 0;
+            long time2 = 0;
+            AlternativeRankingResult resultOrder = null;
+            AlternativeRankingResult resultQV = null;
+            for (int i = 0; i < runNumber; i++) {
+                resultOrder = serviceOrder.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+                resultQV = serviceQV.rankAlternatives(qes, project.getAlternatives(), project.getCriteriaList(), config);
+                time1 += resultOrder.getNanoTime();
+                time2 += resultQV.getNanoTime();
+            }
 
-        DisplayUtils.displayBaseInfo(resultOrder, avgTime1, methodTypeOrder);
-        DisplayUtils.displayBaseInfo(resultQV, avgTime2, methodTypeQV);
+            long avgTime1 = time1 / runNumber;
+            long avgTime2 = time2 / runNumber;
+
+            DisplayUtils.displayBaseInfo(resultOrder, avgTime1, MethodType.ZAPROS_II);
+            DisplayUtils.displayBaseInfo(resultQV, avgTime2, MethodType.ZAPROS_III);
+        }
 //        DisplayUtils.displayAlternativesWithRanks(project, result.getAlternativeResults());
 //        DisplayUtils.displayAlternativeOrder(result.getAlternativeResults());
 
@@ -171,10 +191,12 @@ public class MainClass {
     private static List<Answer> generateAnswers(VdaZaprosService service, List<Criteria> criteriaList) {
         AnswerCheckResult checkResult = service.askFirst(criteriaList);
 
+        boolean isTest= true;
         Random random = new Random();
         while (!checkResult.isOver()) {
             int temp = random.nextInt(2);
-            AnswerType type = parseAnswer(String.valueOf(temp + 1));
+            AnswerType type = parseAnswer(isTest ? "2" : ((temp  == 1) ? "1" : "2"));
+            isTest = !isTest;
 
             checkResult = service.addAnswer(checkResult, type);
         }
