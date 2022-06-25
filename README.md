@@ -1,5 +1,23 @@
-### Консольная имплементация методов вербального анализа решений ZAPROS II, ZAPROS III, ARACE
+## Console implementation of methods for verbal decision analysis ZAPROS II, ZAPROS III, ARACE
 
-Данный репозиторий представляет собою консольную имплементацию системы ранжирования альтернатив на основе методов семейства ЗАПРОС. Также, данное приложение можно использовать в качестве бота для тестирования системы. Модуль c бизнес-логикой системы распологается [здесь](https://github.com/ADanielGhost/vda-zapros).
+### About
 
-Работа проводилась в рамках ВКР в СПбПУ Петра Великого под руководством [В. А. Пархоменко](https://github.com/ParkhomenkoV).
+This repository is a console implementation of the alternatives ranking system based on the ZAPROS family methods. The module with the business logic of the system is located [here](https://github.com/ADanielGhost/vda-zapros).
+
+The project is completed during the preparation of [Daniil A. Antokhin](https://github.com/ADanielGhost) bachalor's thesis at SPbPU Institute of Computer Science and Technology (SPbPU ICST).
+
+### Authors and contributors
+
+The advisor and contributor [Vladimir A. Parkhomenko](https://github.com/ParkhomenkoV) assistant of SPbPU ICST. The main contributor [Daniil A. Antokhin](https://github.com/ADanielGhost) student of SPbPU ICST.
+
+### Acknowledgment
+
+The authors are grateful to SPbPU Institute of computer science and technology (SPbPU ICST). Special thanks are to Alexander V. Shchukin the head of Applied Informatics program for the support.
+
+### Warranty
+
+The contributors give no warranty for the using of the software.
+
+### License
+
+This program is open to use anywhere and is licensed under the [GNU General Public License v3.0](./LICENSE).
